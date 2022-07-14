@@ -1,5 +1,6 @@
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
+import { Scanner } from './scanner';
 
 let hadError = false;
 
@@ -19,14 +20,7 @@ function runFile(path: string) {
 }
 
 function run(source: string) {
-  // const scanner = new Scanner(source);
-  // const tokens: Token[] = scanner.scanTokens();
-  // console.log(tokens);
-}
-
-function error(line: number, message: string) {
-  report(line, '', message);
-}
-function report(line: number, where: string, message: string) {
-  console.log(`[line ${line}] Error ${where}: ${message}`);
+  const scanner = new Scanner(source);
+  const tokens = scanner.scanTokens();
+  console.log(tokens);
 }

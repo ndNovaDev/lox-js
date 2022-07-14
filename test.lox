@@ -1,1 +1,4 @@
 var a = "a";
+fun log(msg) {
+  print msg;
+}
