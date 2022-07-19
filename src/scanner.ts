@@ -44,7 +44,6 @@ export class Scanner {
 
   scanToken() {
     const c = this.advance();
-    console.log('scanToken: ', c);
     switch (c) {
       case '(':
         this.addToken(TokenType.LEFT_PAREN);

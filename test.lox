@@ -1,4 +1,1 @@
-var a = "a";
-fun log(msg) {
-  print msg;
-}
+2 + 4 * 6 == "26" + !false + 2 + 4 * 6 == "26" + !false;

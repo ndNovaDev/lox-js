@@ -1,5 +1,7 @@
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
+import { AstPrinter } from './astPrinter';
+import { Parser } from './parser';
 import { Scanner } from './scanner';
 
 let hadError = false;
@@ -22,5 +24,10 @@ function runFile(path: string) {
 function run(source: string) {
   const scanner = new Scanner(source);
   const tokens = scanner.scanTokens();
-  console.log(tokens);
+  const parser = new Parser(tokens);
+  const expression = parser.parse();
+
+  // Stop if there was a syntax error.
+  if (hadError || !expression) return;
+  console.log(new AstPrinter().print(expression));
 }
