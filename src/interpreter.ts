@@ -1,17 +1,28 @@
+import { Environment } from './environment';
 import { runtimeError } from './error';
-import { Binary, Expr, Grouping, Literal, Unary, Visitor } from './expr';
+import {
+  Binary,
+  Expr,
+  Grouping,
+  Literal,
+  Unary,
+  ExprVisitor,
+  Variable,
+  Assign,
+} from './expr';
 import { RuntimeError } from './runtimeError';
+import { Block, Expression, Print, Stmt, StmtVisitor, Var } from './stmt';
 import { Token } from './token';
 import { TokenType } from './TokenType';
 
-export class Interpreter implements Visitor<any> {
-  interpret(expression: Expr) {
+export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
+  private environment = new Environment();
+  interpret(statements: Stmt[]) {
     try {
-      const value = this.evaluate(expression);
-      console.log(this.stringify(value));
+      for (const statement of statements) {
+        this.execute(statement);
+      }
     } catch (error) {
-      console.log(error);
-      console.log(runtimeError);
       runtimeError(error as RuntimeError);
     }
   }
@@ -33,6 +44,9 @@ export class Interpreter implements Visitor<any> {
 
     // Unreachable.
     return null;
+  }
+  public visitVariableExpr(expr: Variable) {
+    return this.environment.get(expr.name);
   }
   private checkNumberOperand(operator: Token, operand: any) {
     if (typeof operand === 'number') return;
@@ -116,5 +130,47 @@ export class Interpreter implements Visitor<any> {
   }
   private evaluate(expr: Expr) {
     return expr.accept(this);
+  }
+
+  private execute(stmt: Stmt) {
+    stmt.accept(this);
+  }
+
+  executeBlock(statements: Stmt[], environment: Environment) {
+    const previous = this.environment;
+    try {
+      this.environment = environment;
+      for (let statement of statements) {
+        this.execute(statement);
+      }
+    } finally {
+      this.environment = previous;
+    }
+  }
+
+  public visitBlockStmt(stmt: Block) {
+    this.executeBlock(stmt.statements, new Environment(this.environment));
+  }
+
+  visitExpressionStmt(stmt: Expression): void {
+    this.evaluate(stmt.expression);
+  }
+  visitPrintStmt(stmt: Print): void {
+    const value = this.evaluate(stmt.expression);
+    console.log(this.stringify(value));
+  }
+  public visitVarStmt(stmt: Var) {
+    let value = null;
+    if (stmt.initializer) {
+      value = this.evaluate(stmt.initializer);
+    }
+
+    this.environment.define(stmt.name.lexeme, value);
+  }
+
+  public visitAssignExpr(expr: Assign): any {
+    const value = this.evaluate(expr.value);
+    this.environment.assign(expr.name, value);
+    return value;
   }
 }

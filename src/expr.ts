@@ -1,16 +1,30 @@
 import { Token } from './token';
 
-export interface Visitor<R> {
-  visitBinaryExpr(binary: Expr): R;
-  visitGroupingExpr(binary: Expr): R;
-  visitLiteralExpr(binary: Expr): R;
-  visitUnaryExpr(binary: Expr): R;
+export interface ExprVisitor<R> {
+  visitBinaryExpr(expr: Expr): R;
+  visitGroupingExpr(expr: Expr): R;
+  visitLiteralExpr(expr: Expr): R;
+  visitUnaryExpr(expr: Expr): R;
+  visitVariableExpr(expr: Expr): R;
+  visitAssignExpr(expr: Expr): R;
 }
 
 export abstract class Expr {
-  abstract accept<R>(visitor: Visitor<R>): R;
+  abstract accept<R>(visitor: ExprVisitor<R>): R;
 }
 
+export class Assign extends Expr {
+  name: Token;
+  value: Expr;
+  constructor(name: Token, value: Expr) {
+    super();
+    this.name = name;
+    this.value = value;
+  }
+  accept<R>(visitor: ExprVisitor<R>): R {
+    return visitor.visitAssignExpr(this);
+  }
+}
 export class Binary extends Expr {
   left: Expr;
   operator: Token;
@@ -21,7 +35,7 @@ export class Binary extends Expr {
     this.operator = operator;
     this.right = right;
   }
-  accept<R>(visitor: Visitor<R>): R {
+  accept<R>(visitor: ExprVisitor<R>): R {
     return visitor.visitBinaryExpr(this);
   }
 }
@@ -32,7 +46,7 @@ export class Grouping extends Expr {
     super();
     this.expression = expression;
   }
-  accept<R>(visitor: Visitor<R>): R {
+  accept<R>(visitor: ExprVisitor<R>): R {
     return visitor.visitGroupingExpr(this);
   }
 }
@@ -43,7 +57,7 @@ export class Literal extends Expr {
     super();
     this.value = value;
   }
-  accept<R>(visitor: Visitor<R>): R {
+  accept<R>(visitor: ExprVisitor<R>): R {
     return visitor.visitLiteralExpr(this);
   }
 }
@@ -56,7 +70,18 @@ export class Unary extends Expr {
     this.operator = operator;
     this.right = right;
   }
-  accept<R>(visitor: Visitor<R>): R {
+  accept<R>(visitor: ExprVisitor<R>): R {
     return visitor.visitUnaryExpr(this);
+  }
+}
+
+export class Variable extends Expr {
+  name: Token;
+  constructor(name: Token) {
+    super();
+    this.name = name;
+  }
+  accept<R>(visitor: ExprVisitor<R>): R {
+    return visitor.visitVariableExpr(this);
   }
 }
