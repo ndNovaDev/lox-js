@@ -9,9 +9,19 @@ import {
   ExprVisitor,
   Variable,
   Assign,
+  Logical,
 } from './expr';
 import { RuntimeError } from './runtimeError';
-import { Block, Expression, Print, Stmt, StmtVisitor, Var } from './stmt';
+import {
+  Block,
+  Expression,
+  If,
+  Print,
+  Stmt,
+  StmtVisitor,
+  Var,
+  While,
+} from './stmt';
 import { Token } from './token';
 import { TokenType } from './TokenType';
 
@@ -28,6 +38,17 @@ export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
   }
   visitLiteralExpr(expr: Literal) {
     return expr.value;
+  }
+  visitLogicalExpr(expr: Logical): any {
+    const left = this.evaluate(expr.left);
+
+    if (expr.operator.type == TokenType.OR) {
+      if (this.isTruthy(left)) return left;
+    } else {
+      if (!this.isTruthy(left)) return left;
+    }
+
+    return this.evaluate(expr.right);
   }
   visitGroupingExpr(expr: Grouping): any {
     return this.evaluate(expr.expression);
@@ -155,6 +176,13 @@ export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
   visitExpressionStmt(stmt: Expression): void {
     this.evaluate(stmt.expression);
   }
+  visitIfStmt(stmt: If): void {
+    if (this.isTruthy(this.evaluate(stmt.condition))) {
+      this.execute(stmt.thenBranch);
+    } else if (stmt.elseBranch != null) {
+      this.execute(stmt.elseBranch);
+    }
+  }
   visitPrintStmt(stmt: Print): void {
     const value = this.evaluate(stmt.expression);
     console.log(this.stringify(value));
@@ -166,6 +194,13 @@ export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
     }
 
     this.environment.define(stmt.name.lexeme, value);
+  }
+
+  public visitWhileStmt(stmt: While) {
+    while (this.isTruthy(this.evaluate(stmt.condition))) {
+      this.execute(stmt.body);
+    }
+    return null;
   }
 
   public visitAssignExpr(expr: Assign): any {
