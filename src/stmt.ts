@@ -3,8 +3,10 @@ import { Token } from './token';
 
 export interface StmtVisitor<R> {
   visitExpressionStmt(stmt: Stmt): R;
+  visitFunStmt(stmt: Stmt): R;
   visitIfStmt(stmt: Stmt): R;
   visitPrintStmt(stmt: Stmt): R;
+  visitReturnStmt(stmt: Stmt): R;
   visitVarStmt(stmt: Stmt): R;
   visitBlockStmt(stmt: Stmt): R;
   visitWhileStmt(stmt: Stmt): R;
@@ -35,6 +37,20 @@ export class Expression extends Stmt {
   }
 }
 
+export class Fun extends Stmt {
+  name: Token;
+  params: Token[];
+  body: Stmt[];
+  constructor(name: Token, params: Token[], body: Stmt[]) {
+    super();
+    this.name = name;
+    this.params = params;
+    this.body = body;
+  }
+  accept<R>(visitor: StmtVisitor<R>): R {
+    return visitor.visitFunStmt(this);
+  }
+}
 export class If extends Stmt {
   condition: Expr;
   thenBranch: Stmt;
@@ -58,6 +74,19 @@ export class Print extends Stmt {
   }
   accept<R>(visitor: StmtVisitor<R>): R {
     return visitor.visitPrintStmt(this);
+  }
+}
+
+export class Return extends Stmt {
+  Return: Token;
+  value?: Expr;
+  constructor(Return: Token, value?: Expr) {
+    super();
+    this.Return = Return;
+    this.value = value;
+  }
+  accept<R>(visitor: StmtVisitor<R>): R {
+    return visitor.visitReturnStmt(this);
   }
 }
 

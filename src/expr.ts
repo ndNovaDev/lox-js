@@ -2,6 +2,7 @@ import { Token } from './token';
 
 export interface ExprVisitor<R> {
   visitBinaryExpr(expr: Expr): R;
+  visitCallExpr(expr: Expr): R;
   visitGroupingExpr(expr: Expr): R;
   visitLiteralExpr(expr: Expr): R;
   visitLogicalExpr(expr: Expr): R;
@@ -38,6 +39,21 @@ export class Binary extends Expr {
   }
   accept<R>(visitor: ExprVisitor<R>): R {
     return visitor.visitBinaryExpr(this);
+  }
+}
+
+export class Call extends Expr {
+  callee: Expr;
+  paren: Token;
+  args: Expr[];
+  constructor(callee: Expr, paren: Token, args: Expr[]) {
+    super();
+    this.callee = callee;
+    this.paren = paren;
+    this.args = args;
+  }
+  accept<R>(visitor: ExprVisitor<R>): R {
+    return visitor.visitCallExpr(this);
   }
 }
 
