@@ -2,6 +2,7 @@ import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import { Interpreter } from './interpreter';
 import { Parser } from './parser';
+import { Resolver } from './resolver';
 import { Scanner } from './scanner';
 
 let hadError = false;
@@ -29,6 +30,9 @@ function run(source: string) {
   const statements = parser.parse();
 
   // Stop if there was a syntax error.
+  if (hadError) return;
+  const resolver = new Resolver(interpreter);
+  resolver.resolveStatements(statements);
   if (hadError) return;
   interpreter.interpret(statements);
 }

@@ -28,4 +28,18 @@ export class Environment {
   define(name: string, value: any) {
     this.values.set(name, value);
   }
+  ancestor(distance: number) {
+    let environment: Environment | undefined = this;
+    for (let i = 0; i < distance; i++) {
+      environment = environment?.enclosing;
+    }
+
+    return environment;
+  }
+  getAt(distance: number, name: string) {
+    return this.ancestor(distance)?.values.get(name);
+  }
+  assignAt(distance: number, name: Token, value: any) {
+    this.ancestor(distance)?.values.set(name.lexeme, value);
+  }
 }
