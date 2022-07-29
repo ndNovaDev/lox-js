@@ -12,14 +12,18 @@ import {
   Binary,
   Call,
   Expr,
+  Get,
   Grouping,
   Literal,
   Logical,
+  Sett,
+  This,
   Unary,
   Variable,
 } from './expr';
 import {
   Block,
+  Class,
   Expression,
   Fun,
   If,
@@ -56,12 +60,27 @@ export class Parser {
 
   private declaration() {
     try {
+      if (this.match(TokenType.CLASS)) return this.classDeclaration();
       if (this.match(TokenType.FUN)) return this.fun('function');
       if (this.match(TokenType.VAR)) return this.varDeclaration();
       return this.statement();
     } catch (error) {
       this.synchronize();
     }
+  }
+
+  private classDeclaration() {
+    const name = this.consume(TokenType.IDENTIFIER, 'Expect class name.');
+    this.consume(TokenType.LEFT_BRACE, "Expect '{' before class body.");
+
+    const methods: Fun[] = [];
+    while (!this.check(TokenType.RIGHT_BRACE) && !this.isAtEnd()) {
+      methods.push(this.fun('method'));
+    }
+
+    this.consume(TokenType.RIGHT_BRACE, "Expect '}' after class body.");
+
+    return new Class(name, methods);
   }
 
   statement() {
@@ -151,8 +170,10 @@ export class Parser {
       if (expr instanceof Variable) {
         const name = expr.name;
         return new Assign(name, value);
+      } else if (expr instanceof Get) {
+        const get = expr;
+        return new Sett(get.object, get.name, value);
       }
-
       this.error(equals, 'Invalid assignment target.');
     }
 
@@ -341,6 +362,12 @@ export class Parser {
     while (true) {
       if (this.match(TokenType.LEFT_PAREN)) {
         expr = this.finishCall(expr);
+      } else if (this.match(TokenType.DOT)) {
+        const name = this.consume(
+          TokenType.IDENTIFIER,
+          "Expect property name after '.'.",
+        );
+        expr = new Get(expr, name);
       } else {
         break;
       }
@@ -358,6 +385,7 @@ export class Parser {
       return new Literal(this.previous().literal);
     }
 
+    if (this.match(TokenType.THIS)) return new This(this.previous());
     if (this.match(TokenType.IDENTIFIER)) {
       return new Variable(this.previous());
     }

@@ -9,6 +9,7 @@ export interface StmtVisitor<R> {
   visitReturnStmt(stmt: Stmt): R;
   visitVarStmt(stmt: Stmt): R;
   visitBlockStmt(stmt: Stmt): R;
+  visitClassStmt(stmt: Stmt): R;
   visitWhileStmt(stmt: Stmt): R;
 }
 
@@ -24,6 +25,18 @@ export class Block extends Stmt {
   }
   accept<R>(visitor: StmtVisitor<R>): R {
     return visitor.visitBlockStmt(this);
+  }
+}
+export class Class extends Stmt {
+  name: Token;
+  methods: Fun[];
+  constructor(name: Token, methods: Fun[]) {
+    super();
+    this.name = name;
+    this.methods = methods;
+  }
+  accept<R>(visitor: StmtVisitor<R>): R {
+    return visitor.visitClassStmt(this);
   }
 }
 export class Expression extends Stmt {
@@ -78,11 +91,11 @@ export class Print extends Stmt {
 }
 
 export class Return extends Stmt {
-  Return: Token;
+  keyword: Token;
   value?: Expr;
-  constructor(Return: Token, value?: Expr) {
+  constructor(keyword: Token, value?: Expr) {
     super();
-    this.Return = Return;
+    this.keyword = keyword;
     this.value = value;
   }
   accept<R>(visitor: StmtVisitor<R>): R {

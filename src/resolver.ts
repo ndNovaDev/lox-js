@@ -10,10 +10,14 @@ import {
   Literal,
   Logical,
   Unary,
+  Get,
+  Sett,
+  This,
 } from './expr';
 import { Interpreter } from './interpreter';
 import {
   Block,
+  Class,
   Expression,
   Fun,
   If,
@@ -29,12 +33,19 @@ import { Token } from './token';
 enum FunctionType {
   NONE,
   FUNCTION,
+  INITIALIZER,
+  METHOD,
+}
+enum ClassType {
+  NONE,
+  CLASS,
 }
 
 export class Resolver implements ExprVisitor<any>, StmtVisitor<void> {
   private interpreter: Interpreter;
   private scopes: Map<string, boolean>[] = [];
   private currentFunction = FunctionType.NONE;
+  private currentClass = ClassType.NONE;
   constructor(interpreter: Interpreter) {
     this.interpreter = interpreter;
   }
@@ -49,6 +60,24 @@ export class Resolver implements ExprVisitor<any>, StmtVisitor<void> {
     this.beginScope();
     this.resolveStatements(stmt.statements);
     this.endScope();
+  }
+
+  public visitClassStmt(stmt: Class) {
+    const enclosingClass = this.currentClass;
+    this.currentClass = ClassType.CLASS;
+    this.declare(stmt.name);
+    this.define(stmt.name);
+    this.beginScope();
+    this.scopes[0].set('this', true);
+    for (const method of stmt.methods) {
+      let declaration = FunctionType.METHOD;
+      if (method.name.lexeme === 'init') {
+        declaration = FunctionType.INITIALIZER;
+      }
+      this.resolveFunction(method, declaration);
+    }
+    this.endScope();
+    this.currentClass = enclosingClass;
   }
 
   public visitExpressionStmt(stmt: Expression) {
@@ -74,9 +103,15 @@ export class Resolver implements ExprVisitor<any>, StmtVisitor<void> {
 
   public visitReturnStmt(stmt: Return) {
     if (this.currentFunction == FunctionType.NONE) {
-      showErrorWithToken(stmt.Return, "Can't return from top-level code.");
+      showErrorWithToken(stmt.keyword, "Can't return from top-level code.");
     }
     if (stmt.value != null) {
+      if (this.currentFunction == FunctionType.INITIALIZER) {
+        showErrorWithToken(
+          stmt.keyword,
+          "Can't return a value from an initializer.",
+        );
+      }
       this.resolveExpr(stmt.value);
     }
   }
@@ -112,6 +147,10 @@ export class Resolver implements ExprVisitor<any>, StmtVisitor<void> {
     }
   }
 
+  public visitGetExpr(expr: Get) {
+    this.resolveExpr(expr.object);
+  }
+
   public visitGroupingExpr(expr: Grouping) {
     this.resolveExpr(expr.expression);
   }
@@ -121,6 +160,19 @@ export class Resolver implements ExprVisitor<any>, StmtVisitor<void> {
   public visitLogicalExpr(expr: Logical) {
     this.resolveExpr(expr.left);
     this.resolveExpr(expr.right);
+  }
+
+  public visitSettExpr(expr: Sett) {
+    this.resolveExpr(expr.value);
+    this.resolveExpr(expr.object);
+  }
+
+  public visitThisExpr(expr: This) {
+    if (this.currentClass == ClassType.NONE) {
+      showErrorWithToken(expr.keyword, "Can't use 'this' outside of a class.");
+      return null;
+    }
+    this.resolveLocal(expr, expr.keyword);
   }
 
   public visitUnaryExpr(expr: Unary) {
