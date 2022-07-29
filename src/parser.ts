@@ -20,6 +20,7 @@ import {
 } from './expr';
 import {
   Block,
+  Class,
   Expression,
   Fun,
   If,
@@ -56,12 +57,27 @@ export class Parser {
 
   private declaration() {
     try {
+      if (this.match(TokenType.CLASS)) return this.classDeclaration();
       if (this.match(TokenType.FUN)) return this.fun('function');
       if (this.match(TokenType.VAR)) return this.varDeclaration();
       return this.statement();
     } catch (error) {
       this.synchronize();
     }
+  }
+
+  private classDeclaration() {
+    const name = this.consume(TokenType.IDENTIFIER, 'Expect class name.');
+    this.consume(TokenType.LEFT_BRACE, "Expect '{' before class body.");
+
+    const methods: Fun[] = [];
+    while (!this.check(TokenType.RIGHT_BRACE) && !this.isAtEnd()) {
+      methods.push(this.fun('method'));
+    }
+
+    this.consume(TokenType.RIGHT_BRACE, "Expect '}' after class body.");
+
+    return new Class(name, methods);
   }
 
   statement() {

@@ -14,6 +14,7 @@ import {
 import { Interpreter } from './interpreter';
 import {
   Block,
+  Class,
   Expression,
   Fun,
   If,
@@ -49,6 +50,11 @@ export class Resolver implements ExprVisitor<any>, StmtVisitor<void> {
     this.beginScope();
     this.resolveStatements(stmt.statements);
     this.endScope();
+  }
+
+  public visitClassStmt(stmt: Class) {
+    this.declare(stmt.name);
+    this.define(stmt.name);
   }
 
   public visitExpressionStmt(stmt: Expression) {

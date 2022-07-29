@@ -13,11 +13,13 @@ import {
   Call,
 } from './expr';
 import { LoxCallable } from './loxCallable';
+import { LoxClass } from './LoxClass';
 import { LoxFunction } from './LoxFun';
 import { ReturnException } from './return';
 import { RuntimeError } from './runtimeError';
 import {
   Block,
+  Class,
   Expression,
   Fun,
   If,
@@ -230,6 +232,12 @@ export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
 
   public visitBlockStmt(stmt: Block) {
     this.executeBlock(stmt.statements, new Environment(this.environment));
+  }
+
+  public visitClassStmt(stmt: Class) {
+    this.environment.define(stmt.name.lexeme, null);
+    const klass = new LoxClass(stmt.name.lexeme);
+    this.environment.assign(stmt.name, klass);
   }
 
   visitExpressionStmt(stmt: Expression): void {
