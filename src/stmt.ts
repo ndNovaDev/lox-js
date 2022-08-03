@@ -1,4 +1,4 @@
-import { Expr } from './expr';
+import { Expr, Variable } from './expr';
 import { Token } from './token';
 
 export interface StmtVisitor<R> {
@@ -29,10 +29,12 @@ export class Block extends Stmt {
 }
 export class Class extends Stmt {
   name: Token;
+  superclass?: Variable;
   methods: Fun[];
-  constructor(name: Token, methods: Fun[]) {
+  constructor(name: Token, methods: Fun[], superclass?: Variable) {
     super();
     this.name = name;
+    this.superclass = superclass;
     this.methods = methods;
   }
   accept<R>(visitor: StmtVisitor<R>): R {

@@ -14,6 +14,7 @@ import {
   Get,
   Sett,
   This,
+  Super,
 } from './expr';
 import { LoxCallable } from './loxCallable';
 import { LoxClass } from './LoxClass';
@@ -87,6 +88,20 @@ export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
       object.set(expr.name, value);
       return value;
     }
+  }
+
+  public visitSuperExpr(expr: Super) {
+    const distance = this.locals.get(expr) as number;
+    const superclass = this.environment.getAt(distance, 'super');
+    const object = this.environment.getAt(distance - 1, 'this');
+    const method = superclass.findMethod(expr.method.lexeme);
+    if (method == null) {
+      throw new RuntimeError(
+        expr.method,
+        "Undefined property '" + expr.method.lexeme + "'.",
+      );
+    }
+    return method.bind(object);
   }
 
   public visitThisExpr(expr: This) {
@@ -265,7 +280,21 @@ export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
   }
 
   public visitClassStmt(stmt: Class) {
+    let superclass = null;
+    if (stmt.superclass) {
+      superclass = this.evaluate(stmt.superclass);
+      if (!(superclass instanceof LoxClass)) {
+        throw new RuntimeError(
+          stmt.superclass.name,
+          'Superclass must be a class.',
+        );
+      }
+    }
     this.environment.define(stmt.name.lexeme, null);
+    if (stmt.superclass) {
+      this.environment = new Environment(this.environment);
+      this.environment.define('super', superclass);
+    }
     const methods = new Map<string, LoxFunction>();
     for (const method of stmt.methods) {
       const fun = new LoxFunction(
@@ -276,7 +305,14 @@ export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
       methods.set(method.name.lexeme, fun);
     }
 
-    const klass = new LoxClass(stmt.name.lexeme, methods);
+    const klass = new LoxClass(
+      stmt.name.lexeme,
+      methods,
+      superclass as LoxClass,
+    );
+    if (superclass) {
+      this.environment = this.environment.enclosing as Environment;
+    }
     this.environment.assign(stmt.name, klass);
   }
 

@@ -5,16 +5,25 @@ import { LoxInstance } from './LoxInstance';
 
 export class LoxClass implements LoxCallable {
   name: string;
+  superclass?: LoxClass;
   methods: Map<string, LoxFunction>;
 
-  constructor(name: string, methods: Map<string, LoxFunction>) {
+  constructor(
+    name: string,
+    methods: Map<string, LoxFunction>,
+    superclass?: LoxClass,
+  ) {
     this.name = name;
+    this.superclass = superclass;
     this.methods = methods;
   }
 
-  findMethod(name: string) {
+  findMethod(name: string): LoxFunction | undefined {
     if (this.methods.has(name)) {
       return this.methods.get(name);
+    }
+    if (this.superclass) {
+      return this.superclass.findMethod(name);
     }
   }
 

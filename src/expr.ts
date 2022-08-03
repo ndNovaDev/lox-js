@@ -8,6 +8,7 @@ export interface ExprVisitor<R> {
   visitLiteralExpr(expr: Expr): R;
   visitLogicalExpr(expr: Expr): R;
   visitSettExpr(expr: Expr): R;
+  visitSuperExpr(expr: Expr): R;
   visitThisExpr(expr: Expr): R;
   visitUnaryExpr(expr: Expr): R;
   visitVariableExpr(expr: Expr): R;
@@ -122,6 +123,19 @@ export class Sett extends Expr {
   }
   accept<R>(visitor: ExprVisitor<R>): R {
     return visitor.visitSettExpr(this);
+  }
+}
+
+export class Super extends Expr {
+  keyword: Token;
+  method: Token;
+  constructor(keyword: Token, method: Token) {
+    super();
+    this.keyword = keyword;
+    this.method = method;
+  }
+  accept<R>(visitor: ExprVisitor<R>): R {
+    return visitor.visitSuperExpr(this);
   }
 }
 
