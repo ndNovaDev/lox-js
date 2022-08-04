@@ -1,14 +1,14 @@
-import { TokenType } from './TokenType';
+import { Lox } from '.';
 import { Token } from './token';
-import { showError } from './error';
+import { TokenType } from './tokenType';
 
 const keywords = new Map([
   ['and', TokenType.AND],
   ['class', TokenType.CLASS],
   ['else', TokenType.ELSE],
   ['false', TokenType.FALSE],
-  ['for', TokenType.FOR],
   ['fun', TokenType.FUN],
+  ['for', TokenType.FOR],
   ['if', TokenType.IF],
   ['nil', TokenType.NIL],
   ['or', TokenType.OR],
@@ -22,27 +22,24 @@ const keywords = new Map([
 ]);
 
 export class Scanner {
-  source: string;
-  tokens: Token[] = [];
-  start = 0;
-  current = 0;
-  line = 1;
+  private tokens: Token[] = [];
+  private start = 0;
+  private current = 0;
+  private line = 1;
 
-  constructor(source: string) {
-    this.source = source;
-  }
+  constructor(private source: string) {}
 
   scanTokens() {
     while (!this.isAtEnd()) {
+      // We are at the beginning of the next lexeme.
       this.start = this.current;
       this.scanToken();
     }
-
-    this.tokens.push(new Token(TokenType.EOF, '', {}, this.line));
+    this.tokens.push(new Token(TokenType.EOF, '', null, this.line));
     return this.tokens;
   }
 
-  scanToken() {
+  private scanToken() {
     const c = this.advance();
     switch (c) {
       case '(':
@@ -117,23 +114,27 @@ export class Scanner {
         } else if (this.isAlpha(c)) {
           this.identifier();
         } else {
-          showError(this.line, `Unexpected character ${c}`);
+          Lox.error(this.line, 'Unexpected character.');
         }
         break;
     }
   }
 
-  identifier() {
+  private identifier() {
     while (this.isAlphaNumeric(this.peek())) this.advance();
+
     const text = this.source.substring(this.start, this.current);
-    const type = keywords.get(text) || TokenType.IDENTIFIER;
+    let type = keywords.get(text);
+    if (!type) type = TokenType.IDENTIFIER;
     this.addToken(type);
   }
 
-  number() {
+  private number() {
     while (this.isDigit(this.peek())) this.advance();
 
+    // Look for a fractional part.
     if (this.peek() == '.' && this.isDigit(this.peekNext())) {
+      // Consume the "."
       this.advance();
 
       while (this.isDigit(this.peek())) this.advance();
@@ -145,65 +146,64 @@ export class Scanner {
     );
   }
 
-  string() {
-    while (this.peek() !== '"' && !this.isAtEnd()) {
-      if (this.peek() === '\n') {
-        this.line++;
-      }
+  private string() {
+    while (this.peek() != '"' && !this.isAtEnd()) {
+      if (this.peek() == '\n') this.line++;
       this.advance();
     }
+
     if (this.isAtEnd()) {
-      showError(this.line, 'Unterminated string.');
+      Lox.error(this.line, 'Unterminated string.');
       return;
     }
 
     // The closing ".
     this.advance();
 
+    // Trim the surrounding quotes.
     const value = this.source.substring(this.start + 1, this.current - 1);
     this.addToken(TokenType.STRING, value);
   }
 
-  match(expected: string) {
+  private match(expected: string) {
     if (this.isAtEnd()) return false;
     if (this.source[this.current] !== expected) return false;
-
     this.current++;
     return true;
   }
 
-  peek() {
+  private peek() {
     if (this.isAtEnd()) return '\0';
     return this.source[this.current];
   }
 
-  peekNext() {
+  private peekNext() {
     if (this.current + 1 >= this.source.length) return '\0';
-    return this.source[this.current + 1];
+    return this.source.charAt(this.current + 1);
   }
 
-  isAlpha(c: string) {
+  private isAlpha(c: string) {
     return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_';
   }
 
-  isAlphaNumeric(c: string) {
+  private isAlphaNumeric(c: string) {
     return this.isAlpha(c) || this.isDigit(c);
   }
 
-  isDigit(c: string) {
+  private isDigit(c: string) {
     return c >= '0' && c <= '9';
   }
 
-  isAtEnd() {
+  private isAtEnd() {
     return this.current >= this.source.length;
   }
 
-  advance() {
+  private advance() {
     this.current++;
     return this.source[this.current - 1];
   }
 
-  addToken(type: TokenType, literal?: any) {
+  private addToken(type: TokenType, literal?: any) {
     const text = this.source.substring(this.start, this.current);
     this.tokens.push(new Token(type, text, literal, this.line));
   }

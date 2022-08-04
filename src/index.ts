@@ -1,38 +1,62 @@
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
-import { Interpreter } from './interpreter';
-import { Parser } from './parser';
-import { Resolver } from './resolver';
 import { Scanner } from './scanner';
+import prompts from 'prompts';
 
-let hadError = false;
+export class Lox {
+  static hadError = false;
 
-const args = process.argv;
-if (args.length === 3) {
-  runFile(resolve(args[2]));
-} else {
-  throw 'pass .lox file path';
-}
+  public main() {
+    const args = process.argv;
+    if (args.length > 3) {
+      throw 'Usage: jlox [script]';
+    } else if (args.length === 3) {
+      this.runFile(resolve(args[2]));
+    } else {
+      this.runPrompt();
+    }
+  }
 
-function runFile(path: string) {
-  const source = readFileSync(path).toString();
-  run(source);
-  if (hadError) {
-    throw 'error found';
+  async runPrompt() {
+    while (true) {
+      const { line } = await prompts({
+        type: 'text',
+        name: 'line',
+        message: '>',
+      });
+      if (!line) {
+        break;
+      }
+      this.run(line);
+      Lox.hadError = false;
+    }
+  }
+
+  runFile(path: string) {
+    const source = readFileSync(path).toString();
+    this.run(source);
+    if (Lox.hadError) {
+      throw 'error found';
+    }
+  }
+
+  run(source: string) {
+    const scanner = new Scanner(source);
+    const tokens = scanner.scanTokens();
+    tokens.forEach(token => {
+      console.log(token.toString());
+    });
+  }
+
+  static error(line: number, message: string) {
+    Lox.report(line, '', message);
+  }
+
+  static report(line: number, where: string, message: string) {
+    console.log('[line ' + line + '] Error' + where + ': ' + message);
+    Lox.hadError = true;
   }
 }
 
-function run(source: string) {
-  const scanner = new Scanner(source);
-  const interpreter = new Interpreter();
-  const tokens = scanner.scanTokens();
-  const parser = new Parser(tokens);
-  const statements = parser.parse();
-
-  // Stop if there was a syntax error.
-  if (hadError) return;
-  const resolver = new Resolver(interpreter);
-  resolver.resolveStatements(statements);
-  if (hadError) return;
-  interpreter.interpret(statements);
-}
+const lox = new Lox();
+lox.main();
