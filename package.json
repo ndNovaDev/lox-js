@@ -5,7 +5,9 @@
   "main": "src/index.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "ts-node src/index.ts"
+    "start": "ts-node src/index.ts",
+    "ast": "ts-node src/generateAst.ts",
+    "validateAccept": "ts-node src/astPrinter.ts"
   },
   "keywords": [],
   "author": "",
