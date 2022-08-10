@@ -6,9 +6,13 @@ import { Token } from './token';
 import { TokenType } from './tokenType';
 import { Parser } from './parser';
 import { AstPrinter } from './astPrinter';
+import { RuntimeError } from './runtimeError';
+import { Interpreter } from './interpreter';
 
 export class Lox {
+  static interpreter = new Interpreter();
   static hadError = false;
+  static hadRuntimeError = false;
 
   public main() {
     const args = process.argv;
@@ -39,7 +43,7 @@ export class Lox {
   runFile(path: string) {
     const source = readFileSync(path).toString();
     this.run(source);
-    if (Lox.hadError) {
+    if (Lox.hadError || Lox.hadRuntimeError) {
       throw 'error found';
     }
   }
@@ -53,7 +57,7 @@ export class Lox {
     // Stop if there was a syntax error.
     if (Lox.hadError) return;
     if (expression) {
-      console.log(new AstPrinter().print(expression));
+      Lox.interpreter.interpret(expression);
     }
   }
 
@@ -72,6 +76,11 @@ export class Lox {
     } else {
       Lox.report(token.line, " at '" + token.lexeme + "'", message);
     }
+  }
+
+  static runtimeError(error: RuntimeError) {
+    console.log(error.message + '\n[line ' + error.token.line + ']');
+    Lox.hadRuntimeError = true;
   }
 }
 
