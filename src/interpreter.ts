@@ -1,14 +1,28 @@
 import { Lox } from '.';
-import { Binary, Expr, ExprVisitor, Grouping, Literal, Unary } from './Expr';
+import { Environment } from './environment';
+import {
+  Assign,
+  Binary,
+  Expr,
+  ExprVisitor,
+  Grouping,
+  Literal,
+  Unary,
+  Variable,
+} from './expr';
 import { RuntimeError } from './runtimeError';
+import { Block, Expression, Print, Stmt, StmtVisitor, Var } from './stmt';
 import { Token } from './token';
 import { TokenType } from './tokenType';
 
-export class Interpreter implements ExprVisitor<any> {
-  public interpret(expression: Expr) {
+export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
+  private environment = new Environment();
+
+  public interpret(statements: Stmt[]) {
     try {
-      const value = this.evaluate(expression);
-      console.log(this.stringify(value));
+      for (const statement of statements) {
+        this.execute(statement);
+      }
     } catch (error) {
       if (error instanceof RuntimeError) {
         Lox.runtimeError(error as RuntimeError);
@@ -37,6 +51,10 @@ export class Interpreter implements ExprVisitor<any> {
     }
     // Unreachable.
     return null;
+  }
+
+  public visitVariableExpr(expr: Variable) {
+    return this.environment.get(expr.name);
   }
 
   public visitBinaryExpr(expr: Binary) {
@@ -87,6 +105,51 @@ export class Interpreter implements ExprVisitor<any> {
 
   private evaluate(expr: Expr): any {
     return expr.accept(this);
+  }
+
+  private execute(stmt: Stmt) {
+    stmt.accept(this);
+  }
+
+  executeBlock(statements: Stmt[], environment: Environment) {
+    const previous = this.environment;
+    try {
+      this.environment = environment;
+
+      for (const statement of statements) {
+        this.execute(statement);
+      }
+    } finally {
+      this.environment = previous;
+    }
+  }
+
+  public visitBlockStmt(stmt: Block) {
+    this.executeBlock(stmt.statements, new Environment(this.environment));
+    return null;
+  }
+
+  public visitExpressionStmt(stmt: Expression) {
+    this.evaluate(stmt.expression);
+  }
+
+  public visitPrintStmt(stmt: Print) {
+    const value = this.evaluate(stmt.expression);
+    console.log(this.stringify(value));
+  }
+
+  public visitVarStmt(stmt: Var) {
+    let value = null;
+    if (stmt.initializer != null) {
+      value = this.evaluate(stmt.initializer);
+    }
+    this.environment.define(stmt.name.lexeme, value);
+  }
+
+  public visitAssignExpr(expr: Assign) {
+    const value = this.evaluate(expr.value);
+    this.environment.assign(expr.name, value);
+    return value;
   }
 
   private isEqual(a: any, b: any) {

@@ -52,13 +52,11 @@ export class Lox {
     const scanner = new Scanner(source);
     const tokens = scanner.scanTokens();
     const parser = new Parser(tokens);
-    const expression = parser.parse();
+    const statements = parser.parse();
 
     // Stop if there was a syntax error.
     if (Lox.hadError) return;
-    if (expression) {
-      Lox.interpreter.interpret(expression);
-    }
+    Lox.interpreter.interpret(statements);
   }
 
   static errorWithLine(line: number, message: string) {

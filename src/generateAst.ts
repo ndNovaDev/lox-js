@@ -2,16 +2,39 @@ import { writeFileSync } from 'fs';
 
 class GenerateAst {
   public main() {
-    this.defineAst('src', 'Expr', [
-      'Binary   : Expr left, Token operator, Expr right',
-      'Grouping : Expr expression',
-      'Literal  : Object value',
-      'Unary    : Token operator, Expr right',
-    ]);
+    this.defineAst(
+      'src',
+      'Expr',
+      [
+        'Assign   : Token name, Expr value',
+        'Binary   : Expr left, Token operator, Expr right',
+        'Grouping : Expr expression',
+        'Literal  : Object value',
+        'Unary    : Token operator, Expr right',
+        'Variable : Token name',
+      ],
+      "import { Token } from './token';",
+    );
+    this.defineAst(
+      'src',
+      'Stmt',
+      [
+        'Block      : Stmt[] statements',
+        'Expression : Expr expression',
+        'Print      : Expr expression',
+        'Var        : Token name, Expr initializer?',
+      ],
+      "import { Expr } from './expr';\nimport { Token } from './token';",
+    );
   }
 
-  private defineAst(outputDir: string, baseName: string, types: string[]) {
-    const fileName = outputDir + '/' + baseName + '.ts';
+  private defineAst(
+    outputDir: string,
+    baseName: string,
+    types: string[],
+    importStr: string,
+  ) {
+    const fileName = outputDir + '/' + baseName.toLowerCase() + '.ts';
     const typeInfos = types.map(type => {
       const className = type.split(':')[0].trim();
       const fields = type.split(':')[1].trim();
@@ -20,9 +43,9 @@ class GenerateAst {
 
     writeFileSync(
       fileName,
-      `import { Token } from './token';
+      `${importStr}
 
-export interface ExprVisitor<R> {
+export interface ${baseName}Visitor<R> {
   ${typeInfos
     .map(({ className }) => {
       return `visit${className}${baseName}(${baseName.toLowerCase()}: ${baseName}): R;`;
@@ -60,8 +83,8 @@ export class ${className} extends ${baseName} {
   constructor(${fieldParams}) {
     super();
   }
-  accept<R>(visitor: ExprVisitor<R>): R {
-    return visitor.visit${className}Expr(this);
+  accept<R>(visitor: ${baseName}Visitor<R>): R {
+    return visitor.visit${className}${baseName}(this);
   }
 }`;
   }
