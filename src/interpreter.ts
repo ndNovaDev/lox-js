@@ -7,11 +7,21 @@ import {
   ExprVisitor,
   Grouping,
   Literal,
+  Logical,
   Unary,
   Variable,
 } from './expr';
 import { RuntimeError } from './runtimeError';
-import { Block, Expression, Print, Stmt, StmtVisitor, Var } from './stmt';
+import {
+  Block,
+  Expression,
+  If,
+  Print,
+  Stmt,
+  StmtVisitor,
+  Var,
+  While,
+} from './stmt';
 import { Token } from './token';
 import { TokenType } from './tokenType';
 
@@ -36,6 +46,18 @@ export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
     return expr.value;
   }
 
+  public visitLogicalExpr(expr: Logical) {
+    const left = this.evaluate(expr.left);
+
+    if (expr.operator.type == TokenType.OR) {
+      if (left) return left;
+    } else {
+      if (!left) return left;
+    }
+
+    return this.evaluate(expr.right);
+  }
+
   public visitGroupingExpr(expr: Grouping) {
     return this.evaluate(expr.expression);
   }
@@ -55,6 +77,12 @@ export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
 
   public visitVariableExpr(expr: Variable) {
     return this.environment.get(expr.name);
+  }
+
+  public visitWhileStmt(stmt: While) {
+    while (this.evaluate(stmt.condition)) {
+      this.execute(stmt.body);
+    }
   }
 
   public visitBinaryExpr(expr: Binary) {
@@ -131,6 +159,14 @@ export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
 
   public visitExpressionStmt(stmt: Expression) {
     this.evaluate(stmt.expression);
+  }
+
+  public visitIfStmt(stmt: If) {
+    if (this.evaluate(stmt.condition)) {
+      this.execute(stmt.thenBranch);
+    } else if (stmt.elseBranch) {
+      this.execute(stmt.elseBranch);
+    }
   }
 
   public visitPrintStmt(stmt: Print) {

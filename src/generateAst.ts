@@ -10,6 +10,7 @@ class GenerateAst {
         'Binary   : Expr left, Token operator, Expr right',
         'Grouping : Expr expression',
         'Literal  : Object value',
+        'Logical  : Expr left, Token operator, Expr right',
         'Unary    : Token operator, Expr right',
         'Variable : Token name',
       ],
@@ -21,8 +22,10 @@ class GenerateAst {
       [
         'Block      : Stmt[] statements',
         'Expression : Expr expression',
+        'If         : Expr condition, Stmt thenBranch,' + ' Stmt elseBranch?',
         'Print      : Expr expression',
         'Var        : Token name, Expr initializer?',
+        'While      : Expr condition, Stmt body',
       ],
       "import { Expr } from './expr';\nimport { Token } from './token';",
     );

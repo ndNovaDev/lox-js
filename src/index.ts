@@ -5,7 +5,7 @@ import prompts from 'prompts';
 import { Token } from './token';
 import { TokenType } from './tokenType';
 import { Parser } from './parser';
-import { AstPrinter } from './astPrinter';
+// import { AstPrinter } from './astPrinter';
 import { RuntimeError } from './runtimeError';
 import { Interpreter } from './interpreter';
 
