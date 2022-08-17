@@ -4,8 +4,10 @@ import { Token } from './token';
 export interface StmtVisitor<R> {
   visitBlockStmt(stmt: Stmt): R;
   visitExpressionStmt(stmt: Stmt): R;
+  visitFunStmt(stmt: Stmt): R;
   visitIfStmt(stmt: Stmt): R;
   visitPrintStmt(stmt: Stmt): R;
+  visitReturnStmt(stmt: Stmt): R;
   visitVarStmt(stmt: Stmt): R;
   visitWhileStmt(stmt: Stmt): R;
 }
@@ -32,6 +34,15 @@ export class Expression extends Stmt {
   }
 }
 
+export class Fun extends Stmt {
+  constructor(public name: Token, public params: Token[], public body: Stmt[]) {
+    super();
+  }
+  accept<R>(visitor: StmtVisitor<R>): R {
+    return visitor.visitFunStmt(this);
+  }
+}
+
 export class If extends Stmt {
   constructor(public condition: Expr, public thenBranch: Stmt, public elseBranch?: Stmt) {
     super();
@@ -47,6 +58,15 @@ export class Print extends Stmt {
   }
   accept<R>(visitor: StmtVisitor<R>): R {
     return visitor.visitPrintStmt(this);
+  }
+}
+
+export class Return extends Stmt {
+  constructor(public keyword: Token, public value?: Expr) {
+    super();
+  }
+  accept<R>(visitor: StmtVisitor<R>): R {
+    return visitor.visitReturnStmt(this);
   }
 }
 

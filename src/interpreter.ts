@@ -3,6 +3,7 @@ import { Environment } from './environment';
 import {
   Assign,
   Binary,
+  Call,
   Expr,
   ExprVisitor,
   Grouping,
@@ -11,12 +12,17 @@ import {
   Unary,
   Variable,
 } from './expr';
+import { LoxCallable } from './loxCallable';
+import { LoxFunction } from './loxFunction';
+import { ReturnException } from './return ';
 import { RuntimeError } from './runtimeError';
 import {
   Block,
   Expression,
+  Fun,
   If,
   Print,
+  Return,
   Stmt,
   StmtVisitor,
   Var,
@@ -26,7 +32,16 @@ import { Token } from './token';
 import { TokenType } from './tokenType';
 
 export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
-  private environment = new Environment();
+  globals = new Environment();
+  private environment = this.globals;
+
+  constructor() {
+    this.globals.define('clock', {
+      arity: () => 0,
+      call: () => new Date().getTime() / 1000,
+      toString: () => '<native fn>',
+    });
+  }
 
   public interpret(statements: Stmt[]) {
     try {
@@ -131,6 +146,32 @@ export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
     return null;
   }
 
+  public visitCallExpr(expr: Call) {
+    const callee = this.evaluate(expr.callee);
+
+    const args: any[] = [];
+    for (const argument of expr.args) {
+      args.push(this.evaluate(argument));
+    }
+
+    if (!callee.call) {
+      throw new RuntimeError(
+        expr.paren,
+        'Can only call functions and classes.',
+      );
+    }
+    const fun = callee as LoxCallable;
+
+    if (args.length != fun.arity()) {
+      throw new RuntimeError(
+        expr.paren,
+        'Expected ' + fun.arity() + ' arguments but got ' + args.length + '.',
+      );
+    }
+
+    return fun.call(this, args);
+  }
+
   private evaluate(expr: Expr): any {
     return expr.accept(this);
   }
@@ -161,6 +202,11 @@ export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
     this.evaluate(stmt.expression);
   }
 
+  public visitFunStmt(stmt: Fun) {
+    const fun = new LoxFunction(stmt, this.environment);
+    this.environment.define(stmt.name.lexeme, fun);
+  }
+
   public visitIfStmt(stmt: If) {
     if (this.evaluate(stmt.condition)) {
       this.execute(stmt.thenBranch);
@@ -172,6 +218,12 @@ export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
   public visitPrintStmt(stmt: Print) {
     const value = this.evaluate(stmt.expression);
     console.log(this.stringify(value));
+  }
+
+  public visitReturnStmt(stmt: Return) {
+    let value: any;
+    if (stmt.value != null) value = this.evaluate(stmt.value);
+    throw new ReturnException(value);
   }
 
   public visitVarStmt(stmt: Var) {
