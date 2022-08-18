@@ -8,6 +8,7 @@ import { Parser } from './parser';
 // import { AstPrinter } from './astPrinter';
 import { RuntimeError } from './runtimeError';
 import { Interpreter } from './interpreter';
+import { Resolver } from './resolver';
 
 export class Lox {
   static interpreter = new Interpreter();
@@ -55,6 +56,9 @@ export class Lox {
     const statements = parser.parse();
 
     // Stop if there was a syntax error.
+    if (Lox.hadError) return;
+    const resolver = new Resolver(Lox.interpreter);
+    resolver.resolveStmts(statements);
     if (Lox.hadError) return;
     Lox.interpreter.interpret(statements);
   }
